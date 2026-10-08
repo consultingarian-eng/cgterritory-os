@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{APP_NAME}}</title>
+<link rel="icon" type="image/png" href="/favicon.png?v=6">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=6">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=6">
+<meta name="description" content="{{APP_NAME}} — {{DESCRIPTION}}">
+<!-- PWA -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="{{THEME_COLOR}}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="{{APP_NAME}}">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=6">
+<meta property="og:title" content="{{APP_NAME}}">
+<meta property="og:description" content="{{DESCRIPTION}}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{APP_NAME}}">
+<meta name="twitter:description" content="{{DESCRIPTION}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css?v=1.9.4" />
+<link rel="stylesheet" href="/css/style.css?v=99">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img class="brand-mark" src="{{LOGO}}?v=6" alt="" aria-hidden="true">
+    <div class="brand-text">
+      <span class="brand-name">{{APP_NAME}}</span>
+      <span class="brand-sub">{{TAGLINE}}</span>
+    </div>
+  </div>
+
+  <div class="topbar-controls">
+    <div class="search-wrap">
+      <input id="searchInput" type="text" placeholder="Search ZIP or town…" autocomplete="off">
+    </div>
+    <div class="state-chips" id="stateChips" role="group" aria-label="Filter by state"></div>
+  </div>
+
+  <div class="legend" id="legend" aria-label="Status legend">
+    <span class="legend-item"><i class="dot dot-green"></i>Good to Pitch</span>
+    <span class="legend-item"><i class="dot dot-teal"></i>Permit Secured</span>
+    <span class="legend-item"><i class="dot dot-yellow"></i>Permit Needed</span>
+    <span class="legend-item"><i class="dot dot-red"></i>Big Blocker</span>
+    <span class="legend-item"><i class="dot dot-grey"></i>Not Reviewed</span>
+  </div>
+
+  <div class="topbar-actions">
+    <button id="syncSalesBtn" class="topbar-btn" title="Pull the latest sales, pins &amp; balances from the sales sheet">↻ Sync sales</button>
+    <button id="syncDoorsBtn" class="topbar-btn" title="Pull the latest worked doors from the field app">↻ Sync doors</button>
+    <button id="addTerritoriesBtn" class="topbar-btn topbar-btn-accent">+ Add Territories</button>
+    <button id="paintModeBtn" class="topbar-btn">Paint</button>
+    <button id="selectModeBtn" class="topbar-btn">Select</button>
+    <button id="importBtn" class="topbar-btn">Import</button>
+    <div class="color-editor-wrap" style="display:none">
+      <button id="colorEditorBtn" class="topbar-btn">Colors</button>
+      <div class="color-editor-panel" id="colorEditorPanel"></div>
+    </div>
+  </div>
+
+  <!-- Mobile account button -->
+  <button class="mob-menu-btn" id="mobileMenuBtn" aria-label="Account">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+  </button>
+</header>
+
+<!-- Pipeline stats bar -->
+<div class="stats-bar" id="statsBar"></div>
+
+<!-- View tabs -->
+<div class="view-tabs" id="viewTabs">
+  <button class="view-tab active" data-view="map">Map</button>
+  <button class="view-tab" data-view="pipeline">Pipeline</button>
+  <button class="view-tab" data-view="calendar">Schedule</button>
+  <button class="view-tab" data-view="balance">Balance</button>
+  <div class="delivery-filter-wrap">
+    <span class="delivery-filter-lbl">🚚</span>
+    <select id="deliveryFilter" class="delivery-filter-sel" title="Filter map, pipeline &amp; schedule by delivery day">
+      <option value="all">All days</option>
+      <option value="mon">Monday</option>
+      <option value="tue">Tuesday</option>
+      <option value="wed">Wednesday</option>
+      <option value="thu">Thursday</option>
+      <option value="fri">Friday</option>
+      <option value="sat">Saturday</option>
+      <option value="sun">Sunday</option>
+    </select>
+  </div>
+  <div class="delivery-filter-wrap hub-filter-wrap">
+    <span class="delivery-filter-lbl">🏭</span>
+    <select id="hubFilter" class="hub-filter-sel delivery-filter-sel" title="Filter map, pipeline &amp; schedule by distribution hub">
+      <option value="all">All hubs</option>
+    </select>
+  </div>
+  <div class="office-switcher" id="officeSwitcher"></div>
+</div>
+
+<!-- Mobile office switcher (pipeline/schedule views) -->
+<div class="office-bar" id="officeBar"></div>
+
+<!-- Mobile account panel -->
+<div class="mob-menu" id="mobileMenu">
+  <div class="mob-profile-header">
+    <div class="mob-profile-avatar" id="mobProfileAvatar">?</div>
+    <div class="mob-profile-info">
+      <div class="mob-profile-name" id="mobProfileName">—</div>
+      <div class="mob-profile-email" id="mobProfileEmail">—</div>
+      <div class="mob-profile-role" id="mobProfileRole"></div>
+    </div>
+  </div>
+  <label class="helpers-row" for="mobHelpersChk">
+    <span class="helpers-row-txt">
+      <span class="helpers-row-title">Page helpers</span>
+      <span class="helpers-row-sub">Show the <b>i</b> buttons that explain each page</span>
+    </span>
+    <span class="switch"><input type="checkbox" id="mobHelpersChk" checked><span></span></span>
+  </label>
+  <div class="mob-pw-section">
+    <div class="mob-section-label">Change Password</div>
+    <input type="password" id="mobCurrentPw" class="mob-pw-input" placeholder="Current password" autocomplete="current-password">
+    <input type="password" id="mobNewPw" class="mob-pw-input" placeholder="New password (min 8 chars)" autocomplete="new-password">
+    <button id="mobChangePwBtn" class="mob-action-btn mob-pw-btn">Update Password</button>
+    <div id="mobPwMsg" class="mob-pw-msg"></div>
+  </div>
+  <button id="mobManageUsersBtn" class="mob-action-btn" style="display:none;margin-bottom:10px">Manage Users</button>
+  <button id="mobSignOutBtn" class="mob-action-btn mob-signout-btn">Sign Out</button>
+</div>
+
+<!-- Map & Table view -->
+<div id="mapTableView">
+<main class="layout">
+  <section class="map-pane">
+    <div id="map"></div>
+    <div id="bootChip" class="boot-chip" aria-live="polite"><span class="boot-dot"></span>Loading territories…</div>
+    <div class="today-bar" id="todayBar" style="display:none"></div>
+    <div class="layer-switcher" id="layerSwitcher"></div>
+
+    <div class="paint-picker" id="paintPicker">
+      <div class="pp-header">
+        <span id="ppTitle" class="pp-title">—</span>
+        <button id="paintPickerClose" class="pp-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="pp-colors" id="ppColors"></div>
+    </div>
+
+    <div class="drag-select-rect" id="dragSelectRect"></div>
+
+    <div class="action-bar" id="actionBar" aria-live="polite">
+      <span id="abCount">0 ZIPs selected</span>
+      <span class="ab-sep">·</span>
+      <select id="abStatus">
+        <option value="">Set status…</option>
+        <option value="GREEN">Good to Pitch</option>
+        <option value="TEAL">Permit Secured</option>
+        <option value="YELLOW">Permit Needed</option>
+        <option value="RED">Big Blocker</option>
+        <option value="GREY">Not Reviewed</option>
+      </select>
+      <button id="abApply">Apply</button>
+      <button id="abClear" class="ab-clear">Clear</button>
+    </div>
+
+  </section>
+
+  <!-- table pane removed -->
+</main>
+</div>
+
+<!-- Pipeline view -->
+<div id="pipelineView" class="pipeline-view" style="display:none"></div>
+<button id="mobAddFab" class="mob-add-fab" style="display:none" aria-label="Add territories">+</button>
+
+<!-- Calendar / Schedule view -->
+<div id="calendarView" class="calendar-view" style="display:none"></div>
+<div id="balanceView" class="balance-view" style="display:none"></div>
+
+<!-- Mobile bottom nav -->
+<nav class="mob-nav" id="mobNav">
+  <button class="mob-tab active" data-tab="map">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    Map
+  </button>
+  <button class="mob-tab" data-tab="pipeline">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="3" width="6" height="18" rx="1"/><rect x="16" y="3" width="6" height="18" rx="1"/></svg>
+    Pipeline
+  </button>
+  <button class="mob-tab" data-tab="calendar">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Schedule
+  </button>
+  <button class="mob-tab" data-tab="balance">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="3" x2="12" y2="21"/><path d="M3 7h18"/><path d="M7 7l-3 6a3 3 0 0 0 6 0z"/><path d="M17 7l-3 6a3 3 0 0 0 6 0z"/><path d="M8 21h8"/></svg>
+    Balance
+  </button>
+  <button class="mob-tab" data-tab="menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    Account
+  </button>
+</nav>
+
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div class="drawer-handle"></div>
+    <button type="button" class="help-i" data-help="drawer" aria-label="How this works" title="How this works">i</button>
+    <button class="drawer-close" id="drawerClose" aria-label="Close">&times;</button>
+  </div>
+  <div id="drawerContent"></div>
+</div>
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- Add Territories modal -->
+<div class="modal-overlay" id="addTerritoriesOverlay">
+  <div class="modal-panel modal-panel-wide">
+    <div class="modal-header">
+      <h3>Add Territories<button type="button" class="help-i" data-help="addTerritories" aria-label="How this works" title="How this works">i</button></h3>
+      <button id="addTerritoriesClose" class="modal-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="terr-office-row">
+      <label for="addTerritoriesOffice" class="terr-office-lbl">Office</label>
+      <select id="addTerritoriesOffice" class="terr-office-sel">
+      </select>
+    </div>
+
+    <!-- Bulk-load toolbar -->
+    <div class="terr-bulk-bar">
+      <button id="terrTemplateBtn" class="terr-bulk-btn" type="button">⤓ CSV template</button>
+      <button id="terrUploadBtn"   class="terr-bulk-btn" type="button">📂 Upload CSV / Excel</button>
+      <button id="terrAiBtn"       class="terr-bulk-btn terr-bulk-ai" type="button" title="Any format — spreadsheet, photo, PDF, JSON, or text">🤖 Extract with AI</button>
+      <input type="file" id="terrFile" accept=".xlsx,.xls,.csv" style="display:none">
+      <span id="terrBulkMsg" class="terr-bulk-msg"></span>
+    </div>
+
+    <!-- Quick paste bare ZIPs -->
+    <details class="terr-quick">
+      <summary>Quick paste bare ZIPs</summary>
+      <textarea id="addTerritoriesInput" class="terr-textarea" placeholder="01001, 02101, 10001 …"></textarea>
+      <button id="terrQuickAdd" class="terr-quick-btn" type="button">Add to rows ↓</button>
+    </details>
+
+    <!-- Structured entry rows -->
+    <div class="terr-rows-scroll">
+      <table class="terr-rows-table">
+        <thead>
+          <tr>
+            <th>ZIP</th><th>Delivery day</th><th>Hub</th><th>Work from</th><th>Target</th>
+            <th>Complete first</th><th>Notes</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="atRowsBody"></tbody>
+      </table>
+    </div>
+    <button id="terrAddRow" class="terr-addrow-btn" type="button">+ Add row</button>
+
+    <div id="terrRestReview" class="terr-rest-review"></div>
+
+    <div class="modal-footer">
+      <span id="addTerritoriesResult" class="modal-result"></span>
+      <button id="addTerritoriesApply" class="modal-apply-btn">Add to Pipeline</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="import-overlay" id="importOverlay">
+  <div class="import-panel">
+    <div class="import-header">
+      <h3>Import Excel / CSV<button type="button" class="help-i" data-help="import" aria-label="How this works" title="How this works">i</button></h3>
+      <button id="importClose" class="import-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="import-drop" id="importDrop">
+      <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none">
+      <div class="import-drop-inner">
+        <span class="import-drop-icon">📂</span>
+        <span>Drop a file here, or <u>tap to browse</u></span>
+        <span class="import-drop-hint">Columns auto-map</span>
+      </div>
+    </div>
+    <button id="incidentImportSwitch" class="imp-incident-link" type="button">✕ Incident / DNK address list →</button>
+    <div id="importMapping" style="display:none"></div>
+    <div class="import-footer">
+      <span id="importResult" class="import-result"></span>
+      <button id="importApplyBtn" class="import-apply-btn" style="display:none">Apply import</button>
+    </div>
+  </div>
+</div>
+
+<script src="/vendor/leaflet/leaflet.js?v=1.9.4"></script>
+<script src="/config.js"></script>
+<script src="/js/app.js?v=139"></script>
+<!-- The spreadsheet parser (314 KB) loads on demand from app.js when an import starts.
+     The service worker is registered by app.js once the app is up: registering it
+     during load used to install, claim the page and reload it mid-download. -->
+</body>
+</html>

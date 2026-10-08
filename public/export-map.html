@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Territory Export</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="icon" type="image/png" href="/favicon.png?v=6">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css?v=1.9.4"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#0a0610;color:#f7eefb;font-family:'Inter',system-ui,sans-serif;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;}
+
+/* top bar */
+.ex-bar{
+  display:flex;align-items:center;gap:16px;padding:10px 20px;
+  background:#160d24;border-bottom:1px solid #2c1a43;flex-shrink:0;
+  flex-wrap:wrap;
+}
+.ex-title{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;line-height:1;letter-spacing:-.02em;}
+.ex-meta{font-size:12px;color:#b8a6cf;flex:1;}
+.ex-badge{
+  padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;
+  letter-spacing:.04em;
+}
+.ex-info-block{
+  display:flex;gap:16px;flex-wrap:wrap;align-items:center;
+  font-size:11px;color:#b8a6cf;padding:4px 0;
+}
+.ex-info-item{display:flex;flex-direction:column;gap:1px;}
+.ex-info-label{font-size:10px;color:#8f7da8;text-transform:uppercase;letter-spacing:.08em;}
+.ex-info-val{font-weight:600;color:#f7eefb;font-size:12px;}
+.ex-btn{
+  padding:8px 18px;border-radius:999px;border:none;cursor:pointer;
+  font-family:'Inter',system-ui,sans-serif;font-size:12px;font-weight:600;
+  transition:filter .15s;
+}
+.ex-btn-print{background:linear-gradient(135deg,#ec008c 0%,#c026a9 50%,#7a2a9e 100%);color:#fff;box-shadow:0 6px 18px -6px rgba(236,0,140,.55);}
+.ex-btn-print:hover{filter:brightness(1.12);}
+.ex-btn-close{background:#1e1233;color:#b8a6cf;border:1px solid #2c1a43;}
+.ex-btn-close:hover{color:#f7eefb;}
+
+/* map fills remaining height */
+#map{flex:1 1 auto;min-height:0;}
+
+/* print */
+@media print{
+  @page{size:landscape;margin:6mm;}
+  html,body{height:100%;background:#fff;color:#000;}
+  .ex-btn-print,.ex-btn-close{display:none;}
+  .ex-bar{
+    background:#160d24;padding:6px 14px;gap:10px;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  .ex-badge{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .ex-info-block{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #map{
+    flex:1 1 auto;
+    height:calc(100vh - 60px);
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+}
+</style>
+</head>
+<body>
+<div class="ex-bar" id="exBar">
+  <div>
+    <div class="ex-title" id="exTitle">Loading…</div>
+    <div class="ex-meta" id="exMeta"></div>
+  </div>
+  <span class="ex-badge" id="exBadge" style="background:#6B7280;color:#fff;">—</span>
+  <div class="ex-info-block" id="exInfoBlock" style="display:none"></div>
+  <span style="flex:1"></span>
+  <button class="ex-btn ex-btn-close" id="closeBtn">Close</button>
+  <button class="ex-btn ex-btn-print" id="printBtn">⤓ Print / Save PDF</button>
+</div>
+<div id="map"></div>
+
+<script src="/vendor/leaflet/leaflet.js?v=1.9.4"></script>
+<script src="/config.js"></script>
+<script>
+const STATUS = {
+  GREEN:  { label:'Good to Pitch',  color:'#10B981' },
+  TEAL:   { label:'Permit Secured', color:'#14B8A6' },
+  YELLOW: { label:'Permit Needed',  color:'#F59E0B' },
+  RED:    { label:'Big Blocker',    color:'#EF4444' },
+  GREY:   { label:'Not Reviewed',   color:'#6B7280' },
+};
+const COLORS = { GREEN:'#3FAE6A', TEAL:'#0D9488', YELLOW:'#E8B339', RED:'#E5484D', GREY:'#5B6472' };
+
+// Everything below that comes from data (town, permit text, fees — some of
+// it written by AI research from web pages) goes in as text, never as markup.
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+const params    = new URLSearchParams(location.search);
+const targetZip = params.get('zip');
+const autoPrint = params.get('autoprint') === '1';
+
+if (!targetZip) {
+  document.getElementById('exTitle').textContent = 'No ZIP specified';
+}
+
+const map = L.map('map', { zoomControl:true }).setView([42, -71.5], 10);
+
+// Standard OSM street tiles — readable roads and landmarks for field use
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom:19
+}).addTo(map);
+
+let targetBounds = null;
+
+function doPrint(){
+  if (targetBounds) {
+    map.fitBounds(targetBounds, { padding:[60,60], maxZoom:14 });
+    map.invalidateSize();
+  }
+  // Give tiles a moment to render at the new size before the print dialog opens
+  setTimeout(() => window.print(), 900);
+}
+
+document.getElementById('printBtn').addEventListener('click', doPrint);
+document.getElementById('closeBtn').addEventListener('click', () => window.close());
+
+async function loadExport(){
+  const [master, editsResp] = await Promise.all([
+    fetch('/data/master.json').then(r=>r.json()),
+    fetch('/api/edits').then(r=>r.json()).catch(()=>({})),
+  ]);
+
+  const rec = master.find(r => r.zip === targetZip);
+  if (!rec) { document.getElementById('exTitle').textContent = `ZIP ${targetZip} not found`; return; }
+
+  Object.assign(rec, editsResp[targetZip] || {});
+
+  const colorKey   = rec.color || 'GREY';
+  const statusInfo = STATUS[colorKey] || STATUS.GREY;
+  const fillColor  = COLORS[colorKey] || COLORS.GREY;
+  const town = rec.municipality || rec.primary_city || '';
+
+  document.title = `${targetZip} — ${town} | Export`;
+  document.getElementById('exTitle').textContent = `${targetZip} — ${town}`;
+  document.getElementById('exMeta').textContent =
+    [rec.county ? (/county$/i.test(rec.county) ? rec.county : rec.county + ' County') : null, rec.state,
+     rec.households ? '~' + rec.households.toLocaleString() + ' households' : null]
+    .filter(Boolean).join(' · ');
+  const badge = document.getElementById('exBadge');
+  badge.textContent = statusInfo.label;
+  badge.style.background = fillColor + '25';
+  badge.style.color = fillColor;
+  badge.style.border = `1px solid ${fillColor}80`;
+
+  const summary = rec.permit_summary == null ? '' : String(rec.permit_summary);
+  const permitStatus = rec.permit_needed === false ? 'No permit required'
+    : summary ? summary.slice(0,60) + (summary.length > 60 ? '…' : '')
+    : String(rec.permit_required || '—');
+  const infoItems = [
+    rec.households ? { label:'Households', val:'~' + Number(rec.households).toLocaleString() } : null,
+    { label:'Permit', val:permitStatus },
+    rec.fee ? { label:'Permit Fee', val:String(rec.fee).replace(/not specified.*$/i,'').trim() || '—' } : null,
+    town ? { label:'Municipality', val:town } : null,
+  ].filter(Boolean);
+  if (infoItems.length) {
+    const infoBlock = document.getElementById('exInfoBlock');
+    infoBlock.style.display = 'flex';
+    infoBlock.innerHTML = infoItems.map(it => `
+      <div class="ex-info-item">
+        <div class="ex-info-label">${esc(it.label)}</div>
+        <div class="ex-info-val">${esc(it.val)}</div>
+      </div>`).join('');
+  }
+
+  // Polygon file for the record's region (settings.regions, via /config.js)
+  const region = ((window.CGT_CONFIG || {}).regions || []).find(r => r.code === rec.state);
+  if (!region) return;
+
+  const geo = await fetch(region.file).then(r=>r.json());
+
+  // Surrounding ZIPs — light context outlines only
+  L.geoJSON(geo, {
+    filter: f => {
+      const zip = f.properties.POSTCODE || f.properties.ZCTA5CE10 || '';
+      return zip !== targetZip && zip !== '';
+    },
+    style: { color:'#6B7280', weight:0.6, fillColor:'transparent', fillOpacity:0 },
+    interactive: false,
+  }).addTo(map);
+
+  // Target ZIP — colored fill on top
+  let targetLayer = null;
+  L.geoJSON(geo, {
+    filter: f => (f.properties.POSTCODE || f.properties.ZCTA5CE10 || '') === targetZip,
+    style: {
+      color: fillColor,
+      weight: 3,
+      fillColor: fillColor,
+      fillOpacity: 0.35,
+    },
+    onEachFeature: (f, layer) => {
+      targetLayer = layer;
+      const center = layer.getBounds().getCenter();
+      L.marker(center, {
+        icon: L.divIcon({
+          className:'',
+          html:`<div style="
+            font-family:'JetBrains Mono',monospace;
+            font-size:13px;font-weight:700;
+            color:${fillColor};
+            text-shadow:0 1px 3px rgba(255,255,255,.9),0 0 6px rgba(255,255,255,.7);
+            white-space:nowrap;text-align:center;
+            transform:translate(-50%,-50%);
+          ">${esc(targetZip)}<br><span style="font-size:11px;font-weight:400;color:#1f2937">${esc(town)}</span></div>`,
+          iconSize:[0,0]
+        }),
+        interactive:false
+      }).addTo(map);
+    }
+  }).addTo(map);
+
+  if (targetLayer) {
+    targetBounds = targetLayer.getBounds();
+    map.fitBounds(targetBounds, { padding:[60,60], maxZoom:14 });
+  }
+
+  if (autoPrint) {
+    setTimeout(doPrint, 1200);
+  }
+}
+
+loadExport().catch(err => {
+  document.getElementById('exTitle').textContent = 'Error loading map';
+  console.error(err);
+});
+</script>
+</body>
+</html>

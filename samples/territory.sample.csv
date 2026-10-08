@@ -1,0 +1,13 @@
+zip,state,county,city,municipality,households,color,permit_required,authority,hours,days_restricted,other_restrictions,verification_status,internal_notes
+01001,MA,Hampden County,Agawam,Agawam,4200,GREEN,N,Sample Town Clerk (fictional),9am-7pm Mon-Sat (sample),No Sundays (sample),None (sample),SAMPLE DATA - fictional,Sample note: quiet streets near the river are best after 4pm.
+01013,MA,Hampden County,Chicopee,Chicopee,5100,YELLOW,Y,Sample City Clerk (fictional),10am-6pm (sample),None specified (sample),Photo ID badge required (sample),SAMPLE DATA - fictional,
+01020,MA,Hampden County,Chicopee,Chicopee,6300,YELLOW,Y,Sample City Clerk (fictional),10am-6pm (sample),None specified (sample),Photo ID badge required (sample),SAMPLE DATA - fictional,
+01028,MA,Hampden County,East Longmeadow,East Longmeadow,3900,TEAL,Y,Sample Police Dept (fictional),9am-8pm (sample),No Sundays (sample),Register at the front desk each week (sample),SAMPLE DATA - fictional,Sample note: permit held by the East Office lead.
+01030,MA,Hampden County,Feeding Hills,Agawam,2700,GREEN,N,Not required (sample),Daylight hours (sample),None (sample),None (sample),SAMPLE DATA - fictional,
+01040,MA,Hampden County,Holyoke,Holyoke,7400,RED,Y,Sample City Hall (fictional),Not allowed (sample),All days (sample),Sample blocker: no new permits this season,SAMPLE DATA - fictional,Sample note: revisit next quarter.
+01056,MA,Hampden County,Ludlow,Ludlow,4800,GREEN,N,Not required (sample),9am-7pm (sample),None (sample),None (sample),SAMPLE DATA - fictional,
+01089,MA,Hampden County,West Springfield,West Springfield,6100,YELLOW,Y,Sample Town Clerk (fictional),9am-6pm (sample),No Sundays (sample),Background check (sample),SAMPLE DATA - fictional,
+01095,MA,Hampden County,Wilbraham,Wilbraham,3600,GREY,Not researched,Not researched,Not researched,Not researched,Not researched,Not researched,
+01106,MA,Hampden County,Longmeadow,Longmeadow,3300,GREY,Not researched,Not researched,Not researched,Not researched,Not researched,Not researched,
+01108,MA,Hampden County,Springfield,Springfield,8200,YELLOW,Y,Sample City Clerk (fictional),10am-7pm (sample),None specified (sample),Badge and fee per person (sample),SAMPLE DATA - fictional,
+01129,MA,Hampden County,Springfield,Springfield,2900,GREEN,N,Not required (sample),9am-7pm (sample),None (sample),None (sample),SAMPLE DATA - fictional,

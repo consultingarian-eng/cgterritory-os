@@ -1,0 +1,55 @@
+{
+  "_comment": "Owner settings. This copy describes the FICTIONAL sample territory that ships with the repo (12 real public ZIP boundaries around Springfield, MA; every office, hub, status, note and figure is made up). Replace it with your own — see lib/settings.js for every key and its default. No secrets belong in this file.",
+
+  "brand": {
+    "appName": "CGTerritory",
+    "tagline": "Territory & Permit Board",
+    "description": "Territory intelligence & permit board for door-to-door canvassing.",
+    "orgName": "Sample Canvassing Co.",
+    "orgUrl": "",
+    "logo": "/logo.svg",
+    "logoPng": "/logo.png",
+    "themeColor": "#0a0610"
+  },
+
+  "timezone": "America/New_York",
+  "countryCodes": ["us"],
+  "areaLabel": "ZIP",
+
+  "regions": [
+    { "code": "MA", "label": "Massachusetts", "file": "/data/ma.geojson" }
+  ],
+
+  "offices": [
+    { "key": "east", "label": "East Office", "color": "#3B82F6", "regions": ["MA"],
+      "address": "100 Sample Street (fictional)", "lat": 42.152, "lng": -72.452 },
+    { "key": "west", "label": "West Office", "color": "#F59E0B", "regions": ["MA"],
+      "address": "200 Example Avenue (fictional)", "lat": 42.108, "lng": -72.655 }
+  ],
+
+  "hubs": [
+    { "key": "riverside", "label": "Riverside Depot", "short": "RIV", "aliases": ["riverside depot"] },
+    { "key": "hilltop",   "label": "Hilltop Depot",   "short": "HIL", "aliases": ["hilltop depot"] }
+  ],
+
+  "client": {
+    "name": "Client",
+    "salesLabel": "Client sales"
+  },
+
+  "fieldApp": {
+    "name": "the field app"
+  },
+
+  "sales": {
+    "refreshTimes": ["08:10", "08:20"],
+    "pinBounds": [41.9, -72.9, 42.4, -72.2]
+  },
+
+  "research": {
+    "region": "Massachusetts, United States",
+    "notes": [
+      "Check whether the state has its own solicitor or hawker licence on top of any town permit, and say so explicitly."
+    ]
+  }
+}
